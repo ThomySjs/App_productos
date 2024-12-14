@@ -1,9 +1,14 @@
 import customtkinter as ctk
 import tkinter as tk
+from CTkMessagebox import CTkMessagebox
 from PIL import Image, ImageTk
+from entities.user import user
+from Database.Qmanager import sign_in, register, get_session_data
+import requests
+import json
 
 
-class MS(ctk.CTk):
+class MainScreen(ctk.CTk):
     def __init__(self, *args, **kwargs):
         super().__init__()
         self.title('Prueba')
@@ -11,6 +16,7 @@ class MS(ctk.CTk):
         self.columnconfigure(0, weight=2, uniform='a')
         self.columnconfigure(1, weight=1, uniform='a')
         self.rowconfigure(0, weight=1)
+        self.session = []
 
         #Main frame
 
@@ -58,11 +64,12 @@ class MS(ctk.CTk):
         self.y = (self.screen_height / 2) - (self.height / 2)
 
         self.geometry('%dx%d+%d+%d' % (self.width, self.height, self.x, self.y))
-        self.Loguin()
-        self.Image()
+        self.update()
+        self.loguin_widgets()
+        self.image_widget()
         
 
-    def Image(self, *args, **kwargs):
+    def image_widget(self, *args, **kwargs):
 
         #This deletes every widget(in this case image) everytime this function is called
         #keeping just 1 image at the time 
@@ -85,33 +92,103 @@ class MS(ctk.CTk):
         #This prevents the image to be garbage collected
         canvas_image.image = image_tk
 
-    def Loguin(self, *args):
-        
-        self.update()
+    def loguin_widgets(self, *args):
+        for widget in self.form_frame.winfo_children():
+            if not isinstance(widget, ctk.CTkComboBox):
+                widget.destroy()
+
         width = int(self.form_frame.winfo_width() / 1.3)
 
-        mail = ctk.StringVar()
+        email = ctk.StringVar()
         password = ctk.StringVar()
         
-        label_mail = ctk.CTkLabel(self.form_frame, text='Mail', font=('Arial', 24), text_color='white')
+        label_mail = ctk.CTkLabel(self.form_frame, text='Email', font=('Arial', 24), text_color='white')
         label_password = ctk.CTkLabel(self.form_frame, text='Password', font=('Arial', 24), text_color='white')
 
-
-
-        entry_mail = ctk.CTkEntry(self.form_frame, placeholder_text='example@gmail.com', textvariable=mail, width=width, height=45, font=('Arial', 18))
+        entry_mail = ctk.CTkEntry(self.form_frame, placeholder_text='example@gmail.com', textvariable=email, width=width, height=45, font=('Arial', 18))
         entry_password = ctk.CTkEntry(self.form_frame, textvariable=password, show='*', width=width, height=45, font=('Arial', 18))
 
-        Login_button = ctk.CTkButton(self.form_frame, text='Login', fg_color='green', width=width, height=40,  command=lambda: print(mail.get()))
+        login_button = ctk.CTkButton(self.form_frame, text='Login', fg_color='green', width=width, height=40,  command=lambda: self.login_verificacion(email=email.get(), password=password.get()))
+
+        register_button = ctk.CTkButton(self.form_frame, text='Register', width=width, height=40, command=self.register_widgets)
         
         label_mail.pack(pady = (150,5))
         entry_mail.pack(pady= 5)
         label_password.pack(pady = 5)
         entry_password.pack(pady=5)
-        Login_button.pack(pady=10)
+        login_button.pack(pady=10)
+        register_button.pack(pady=40)
 
-    
+    def register_widgets(self, *args):
+        for widget in self.form_frame.winfo_children():
+            if not isinstance(widget, ctk.CTkComboBox):
+                widget.destroy()
+
+        width = int(self.form_frame.winfo_width() / 1.3)
+
+        name = ctk.StringVar()
+        email = ctk.StringVar()
+        password = ctk.StringVar()
+        
+        label_name = ctk.CTkLabel(self.form_frame, text='Name', font=('Arial', 24), text_color='white')
+        label_mail = ctk.CTkLabel(self.form_frame, text='Email', font=('Arial', 24), text_color='white')
+        label_password = ctk.CTkLabel(self.form_frame, text='Password', font=('Arial', 24), text_color='white')
+
+        entry_name = ctk.CTkEntry(self.form_frame, textvariable=name, width=width, height=45, font=('Arial', 18) )
+        entry_mail = ctk.CTkEntry(self.form_frame, placeholder_text='example@gmail.com', textvariable=email, width=width, height=45, font=('Arial', 18))
+        entry_password = ctk.CTkEntry(self.form_frame, textvariable=password, show='*', width=width, height=45, font=('Arial', 18))
+
+        register_button = ctk.CTkButton(self.form_frame, text='Register', fg_color='green', width=width, height=40,  command=lambda: self.register_verification(name = name.get(), email=email.get(), password=password.get()))
+
+        login_button = ctk.CTkButton(self.form_frame, text='Sign In', width=width, height=40, command=self.loguin_widgets)
+        
+        label_name.pack(pady = (150,5))
+        entry_name.pack(pady = 5)
+        label_mail.pack(pady = 5)
+        entry_mail.pack(pady= 5)
+        label_password.pack(pady = 5)
+        entry_password.pack(pady=5)
+        register_button.pack(pady=10)
+        login_button.pack(pady=40)
+
+    def send_email(self, *args):
+        email = {'email' : args[0]}
+
+        r = requests.post('http://127.0.0.1:5000/email', json=email)
+
+        if r.status_code == 200:
+            CTkMessagebox(self, message='Email sent')
+        else:
+            CTkMessagebox(self, message='An error ocurred.')
+
+    def login_verificacion(self,*args, **kwargs):
+        state, msg =  sign_in(kwargs['email'], kwargs['password'])
+        if state:
+            bool, data = get_session_data(kwargs['email'])
+            if bool:
+                if data[2]:
+                    user_session = user(data[0], data[1], kwargs['email'])
+                    self.session.append(user_session)
+                    CTkMessagebox(self, message=msg)
+                else:
+                    option = CTkMessagebox(self, message='Email verification required.', option_1='Cancel', option_2='Send email')
+                    if option.get() == 'Send email':
+                        self.send_email(kwargs['email'])
+            else: 
+                CTkMessagebox(self, message=data)
+        else:
+            CTkMessagebox(self, message=msg)
+
+    def register_verification(self, *args, **kwargs):
+        state, msg = register(kwargs['name'], kwargs['email'], kwargs['password'])
+        if state:
+            CTkMessagebox(self, message=msg)
+        else:
+            CTkMessagebox(self, message=msg)
+
+
 
 
 if __name__ == "__main__":
-    app = MS()
+    app = MainScreen()
     app.mainloop()
