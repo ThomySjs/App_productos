@@ -1,0 +1,12 @@
+bcrypt==4.2.1
+certifi==2024.8.30
+charset-normalizer==3.4.0
+CTkMessagebox==2.7
+customtkinter==5.2.2
+darkdetect==0.8.0
+idna==3.10
+packaging==24.2
+pillow==11.0.0
+psycopg2==2.9.10
+requests==2.32.3
+urllib3==2.2.3
