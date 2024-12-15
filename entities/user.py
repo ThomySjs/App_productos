@@ -34,3 +34,6 @@ class user:
         self.__email= email
         msg = 'Email changed'
         return True, msg
+    
+    def __str__(self):
+        return f'ID: {self.__id}, name: {self.__name}, email: {self.__email}'

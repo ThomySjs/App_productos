@@ -5,29 +5,29 @@ from PIL import Image, ImageTk
 from entities.user import user
 from Database.Qmanager import sign_in, register, get_session_data
 import requests
-import json
+import os
 
 
 class MainScreen(ctk.CTk):
     def __init__(self, *args, **kwargs):
         super().__init__()
-        self.title('Prueba')
+        self.title('Menu manager')
         self.resizable(0, 0)
-        self.columnconfigure(0, weight=2, uniform='a')
-        self.columnconfigure(1, weight=1, uniform='a')
-        self.rowconfigure(0, weight=1)
         self.session = []
-
-        #Main frame
-
         self.Resolution(width = 1280, height =  720)
 
     def Resolution(self, *args, **kwargs):
         for widget in self.winfo_children():
             widget.destroy()
 
-        self.form_frame = ctk.CTkFrame(self)
-        self.image_frame = ctk.CTkFrame(self)
+        self.main_frame = ctk.CTkFrame(self)
+        self.main_frame.columnconfigure(0, weight=2, uniform='a')
+        self.main_frame.columnconfigure(1, weight=1, uniform='a')
+        self.main_frame.rowconfigure(0, weight=1)
+        self.main_frame.pack(expand=True, fill='both')
+        
+        self.form_frame = ctk.CTkFrame(self.main_frame)
+        self.image_frame = ctk.CTkFrame(self.main_frame)
         self.form_frame.grid(row=0, column=1, sticky='nswe')
         self.image_frame.grid(row=0, column=0, sticky='nswe')
 
@@ -63,6 +63,7 @@ class MainScreen(ctk.CTk):
         self.x = (self.screen_width / 2) - (self.width / 2)
         self.y = (self.screen_height / 2) - (self.height / 2)
 
+        #Set the app resolution and place it in the middle of the screen
         self.geometry('%dx%d+%d+%d' % (self.width, self.height, self.x, self.y))
         self.update()
         self.loguin_widgets()
@@ -93,15 +94,18 @@ class MainScreen(ctk.CTk):
         canvas_image.image = image_tk
 
     def loguin_widgets(self, *args):
+        #Delete previous self.form_frame widgets that are not CTkComboBox
         for widget in self.form_frame.winfo_children():
             if not isinstance(widget, ctk.CTkComboBox):
                 widget.destroy()
 
         width = int(self.form_frame.winfo_width() / 1.3)
 
+        #Variables
         email = ctk.StringVar()
         password = ctk.StringVar()
         
+        #Widgets
         label_mail = ctk.CTkLabel(self.form_frame, text='Email', font=('Arial', 24), text_color='white')
         label_password = ctk.CTkLabel(self.form_frame, text='Password', font=('Arial', 24), text_color='white')
 
@@ -112,6 +116,7 @@ class MainScreen(ctk.CTk):
 
         register_button = ctk.CTkButton(self.form_frame, text='Register', width=width, height=40, command=self.register_widgets)
         
+        #Layout
         label_mail.pack(pady = (150,5))
         entry_mail.pack(pady= 5)
         label_password.pack(pady = 5)
@@ -120,16 +125,19 @@ class MainScreen(ctk.CTk):
         register_button.pack(pady=40)
 
     def register_widgets(self, *args):
+        #Delete previous self.form_frame widgets that are not CTkComboBox
         for widget in self.form_frame.winfo_children():
             if not isinstance(widget, ctk.CTkComboBox):
                 widget.destroy()
 
         width = int(self.form_frame.winfo_width() / 1.3)
 
+        #Variables
         name = ctk.StringVar()
         email = ctk.StringVar()
         password = ctk.StringVar()
         
+        #Widgets
         label_name = ctk.CTkLabel(self.form_frame, text='Name', font=('Arial', 24), text_color='white')
         label_mail = ctk.CTkLabel(self.form_frame, text='Email', font=('Arial', 24), text_color='white')
         label_password = ctk.CTkLabel(self.form_frame, text='Password', font=('Arial', 24), text_color='white')
@@ -142,6 +150,7 @@ class MainScreen(ctk.CTk):
 
         login_button = ctk.CTkButton(self.form_frame, text='Sign In', width=width, height=40, command=self.loguin_widgets)
         
+        #Layout
         label_name.pack(pady = (150,5))
         entry_name.pack(pady = 5)
         label_mail.pack(pady = 5)
@@ -151,25 +160,36 @@ class MainScreen(ctk.CTk):
         register_button.pack(pady=10)
         login_button.pack(pady=40)
 
+    def control_panel(self, *args, **kwargs):
+        if self.session:
+            #Delete previous self.form_frame widgets that are not CTkComboBox
+            for widget in self.main_frame.winfo_children():
+                widget.destroy()
+
+
     def send_email(self, *args):
         email = {'email' : args[0]}
 
-        r = requests.post('http://127.0.0.1:5000/email', json=email)
-
+        r = requests.post(os.getenv('VERIFICATION_ROUTE'), json=email)
         if r.status_code == 200:
             CTkMessagebox(self, message='Email sent')
         else:
             CTkMessagebox(self, message='An error ocurred.')
 
+
     def login_verificacion(self,*args, **kwargs):
         state, msg =  sign_in(kwargs['email'], kwargs['password'])
         if state:
-            bool, data = get_session_data(kwargs['email'])
-            if bool:
-                if data[2]:
-                    user_session = user(data[0], data[1], kwargs['email'])
+            query_accepted, data = get_session_data(kwargs['email'])
+            user_id = data[0]
+            user_name = data[1]
+            verified = data[2]
+            if query_accepted:
+                if verified:
+
+                    user_session = user(user_id, user_name, kwargs['email'])
                     self.session.append(user_session)
-                    CTkMessagebox(self, message=msg)
+                    self.control_panel()
                 else:
                     option = CTkMessagebox(self, message='Email verification required.', option_1='Cancel', option_2='Send email')
                     if option.get() == 'Send email':
