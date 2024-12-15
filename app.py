@@ -6,11 +6,13 @@ from entities.user import user
 from Database.Qmanager import sign_in, register, get_session_data
 import requests
 import os
-
+from dotenv import load_dotenv
 
 class MainScreen(ctk.CTk):
     def __init__(self, *args, **kwargs):
         super().__init__()
+        ctk.set_appearance_mode('dark')
+        load_dotenv()
         self.title('Menu manager')
         self.resizable(0, 0)
         self.session = []
@@ -42,7 +44,7 @@ class MainScreen(ctk.CTk):
         if kwargs:
             width = kwargs['width']
             height = kwargs['height']
-            res_menu.set(f'{kwargs['width']}x{kwargs['height']}')
+            res_menu.set(f'{width}x{height}')
 
         #args when the function is called by the comobox
         else:
@@ -165,6 +167,26 @@ class MainScreen(ctk.CTk):
             #Delete previous self.form_frame widgets that are not CTkComboBox
             for widget in self.main_frame.winfo_children():
                 widget.destroy()
+
+            navbar_frame = ctk.CTkFrame(self.main_frame)
+            data_frame = ctk.CTkFrame(self.main_frame)
+            table_frame = ctk.CTkFrame(self.main_frame)
+
+
+            navbar_frame.pack(side='left', fill='y')
+            data_frame.pack(side='left', expand=True, fill='both')
+            table_frame.pack(side='left', expand=True, fill='both')
+
+            #navbar
+            create_button = ctk.CTkButton(navbar_frame, fg_color='green')
+            modify_button = ctk.CTkButton(navbar_frame, fg_color='blue')
+            delete_button = ctk.CTkButton(navbar_frame, fg_color='red')
+
+            create_button.pack(pady=10)
+            modify_button.pack(pady=10)
+            delete_button.pack(pady=10)
+
+            
 
 
     def send_email(self, *args):
