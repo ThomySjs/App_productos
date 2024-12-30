@@ -15,10 +15,7 @@ def create_tables() -> bool:
                 """
         
         delete2="""
-                DROP TABLE IF EXISTS usuarios;
-                DROP TABLE IF EXISTS correos;
-                DROP TABLE IF EXISTS productos;
-                DROP TABLE IF EXISTS descripciones;
+                DROP TABLE change_log;
                 """
 
         create = """
@@ -41,13 +38,8 @@ def create_tables() -> bool:
                 CREATE TABLE IF NOT EXISTS change_log(
                     id_log SERIAL PRIMARY KEY,
                     user_id INTEGER NOT NULL,
-                    product_id INTEGER NOT NULL,
                     log VARCHAR(250) NOT NULL,
-                    date TIMESTAMP NOT NULL,
-                    CONSTRAINT product_fk FOREIGN KEY (product_id) 
-                    REFERENCES product(product_id) ON DELETE CASCADE,
-                    CONSTRAINT user_fk FOREIGN KEY (user_id)
-                    REFERENCES users(user_id) ON DELETE CASCADE
+                    date TIMESTAMP NOT NULL
                 );
                 """
         cursor.execute(create)
