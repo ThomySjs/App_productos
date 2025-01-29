@@ -688,8 +688,8 @@ class MainScreen(ctk.CTk):
             CTkMessagebox(self, message='Price must be a positive real number.')
         elif not isinstance(category, str) or category.isspace() or category == "":
             CTkMessagebox(self, message='Category cant be empty.')
-        elif not isinstance(description, str) or description.isspace() or description.isdigit() or description == "":
-            CTkMessagebox(self, message='Description must be a non empty string.')
+        elif not isinstance(description, str)  or description.isdigit():
+            CTkMessagebox(self, message='Description must be str type.')
         else:
             route = os.getenv("URL") + "products/add"
             json_payload = {
@@ -704,8 +704,8 @@ class MainScreen(ctk.CTk):
                 if response.status_code == 401:
                     self.refresh_token()
                     self.add_data(name, price, description, category, available)
-                elif response.status_code == 200:
-                    self.table('product_id')
+                elif response.status_code == 201:
+                    self.table()
                 else:
                     CTkMessagebox(self, message=response.text["error"])
             except requests.ConnectionError:
@@ -742,7 +742,7 @@ class MainScreen(ctk.CTk):
                     self.refresh_token()
                     self.delete_data(product_id)
                 elif response.status_code == 200:
-                    self.table('product_id')
+                    self.table()
                 else:
                     CTkMessagebox(self, message=response.text["error"])
             except requests.ConnectionError:
@@ -781,8 +781,8 @@ class MainScreen(ctk.CTk):
             CTkMessagebox(self, message='Price must be a positive real number.')
         elif not isinstance(category, str) or category.isspace() or category == "":
             CTkMessagebox(self, message='Category cant be empty.')
-        elif not isinstance(description, str) or description.isspace() or description.isdigit() or description == "":
-            CTkMessagebox(self, message='Description must be a non empty string.')
+        elif not isinstance(description, str) or description.isdigit():
+            CTkMessagebox(self, message='Description must be str type.')
         else:
             route = os.getenv("URL") + "products/update"
             json_payload = {
@@ -799,7 +799,7 @@ class MainScreen(ctk.CTk):
                     self.refresh_token()
                     self.modify_data(id, name, price, description, category, available)
                 elif response.status_code == 200:
-                    self.table('product_id')
+                    self.table()
                 else:
                     CTkMessagebox(self, message=response.text["error"])
             except requests.ConnectionError:
@@ -831,7 +831,10 @@ class MainScreen(ctk.CTk):
                 self.show_description(table)
             elif response.status_code == 200:
                 data = response.json()
-                CTkMessagebox(self, message=data["description"], title='Description', option_1='Close', icon='')
+                if data["description"] is None or data["description"].isspace() or data["description"] == "":
+                    CTkMessagebox(self, message=" ", title='Description', option_1='Close', icon='')
+                else:
+                    CTkMessagebox(self, message=data["description"], title='Description', option_1='Close', icon='')
             else:
                 CTkMessagebox(self, message=response.text, title='Error')
         except requests.ConnectionError:
@@ -900,13 +903,12 @@ class MainScreen(ctk.CTk):
                 else:
                     self.remember_tool_write("")
                 self.control_panel()
+            elif response.status_code == 401:
+                option = CTkMessagebox(self, message=response_dict["error"], option_1="Resend mail", option_2="Close", title="Account not verified")
+                if option.get() == "Resend mail":
+                    self.send_email(kwargs['mail'])
             else:
-                if "not verified" in response_dict["error"]:
-                    option = CTkMessagebox(self, message=response_dict["error"], option_1="Send mail", option_2="Close", title="Account not verified")
-                    if option.get() == "Send mail":
-                        self.send_email(kwargs['mail'])
-                else:
-                    CTkMessagebox(self, message=response_dict["error"])
+                CTkMessagebox(self, message=response_dict["error"])
         except requests.ConnectionError:
             CTkMessagebox(self, message='Connection error.', title='Error')
         except Exception as e:
